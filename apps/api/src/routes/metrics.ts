@@ -12,6 +12,16 @@ interface ResponseTimeRow {
   avg_seconds: number | null;
 }
 
+interface DirectionGroup {
+  direction: string;
+  _count: { _all: number };
+}
+
+interface StatusGroup {
+  status: string;
+  _count: { _all: number };
+}
+
 export async function metricsRoutes(app: FastifyInstance): Promise<void> {
   app.get(
     "/api/metrics/dashboard",
@@ -92,14 +102,20 @@ export async function metricsRoutes(app: FastifyInstance): Promise<void> {
         `,
       ]);
 
-      const inboundTotal = Number(totals.find((t) => t.direction === "inbound")?._count._all ?? 0);
-      const outboundTotal = Number(totals.find((t) => t.direction === "outbound")?._count._all ?? 0);
+      const totalsTyped = totals as unknown as DirectionGroup[];
+      const statusTyped = statusCounts as unknown as StatusGroup[];
+      const inboundTotal = Number(
+        totalsTyped.find((t: DirectionGroup) => t.direction === "inbound")?._count._all ?? 0,
+      );
+      const outboundTotal = Number(
+        totalsTyped.find((t: DirectionGroup) => t.direction === "outbound")?._count._all ?? 0,
+      );
       const totalResolved = botResolved + humanResolved;
 
       return {
         windowDays: days,
         totals: { inbound: inboundTotal, outbound: outboundTotal },
-        statusBreakdown: statusCounts.map((s) => ({
+        statusBreakdown: statusTyped.map((s: StatusGroup) => ({
           status: s.status,
           count: s._count._all,
         })),
@@ -111,7 +127,7 @@ export async function metricsRoutes(app: FastifyInstance): Promise<void> {
         },
         contacts: { total: contactsTotal, newInWindow: contactsRecent },
         avgFirstResponseSeconds: responseTime[0]?.avg_seconds ?? null,
-        daily: daily.map((d) => ({
+        daily: daily.map((d: DailyRow) => ({
           day: new Date(d.day).toISOString().slice(0, 10),
           inbound: Number(d.inbound),
           outbound: Number(d.outbound),
