@@ -30,16 +30,20 @@ enum MessageStatus {
 }
 
 model Contact {
-  id             String         @id @default(uuid()) @db.Uuid
-  phoneNumber    String         @unique @map("phone_number")
-  name           String?
-  profileName    String?        @map("profile_name")
-  tags           String[]       @default([])
-  metadata       Json           @default("{}")
-  createdAt      DateTime       @default(now()) @map("created_at")
-  lastMessageAt  DateTime?      @map("last_message_at")
-  conversations  Conversation[]
+  id                  String               @id @default(uuid()) @db.Uuid
+  phoneNumber         String               @unique @map("phone_number")
+  name                String?
+  profileName         String?              @map("profile_name")
+  tags                String[]             @default([])
+  metadata            Json                 @default("{}")
+  optedOut            Boolean              @default(false) @map("opted_out")
+  optedOutAt          DateTime?            @map("opted_out_at")
+  createdAt           DateTime             @default(now()) @map("created_at")
+  lastMessageAt       DateTime?            @map("last_message_at")
+  conversations       Conversation[]
+  campaignRecipients  CampaignRecipient[]
 
+  @@index([optedOut])
   @@map("contacts")
 }
 
@@ -89,6 +93,67 @@ model Setting {
   @@map("settings")
 }
 
+enum CampaignStatus {
+  draft
+  queued
+  sending
+  completed
+  cancelled
+  failed
+}
+
+enum CampaignRecipientStatus {
+  pending
+  queued
+  sent
+  delivered
+  read
+  failed
+  skipped_opted_out
+}
+
+model Campaign {
+  id                String              @id @default(uuid()) @db.Uuid
+  name              String
+  templateId        String              @map("template_id") @db.Uuid
+  template          Template            @relation(fields: [templateId], references: [id])
+  parameterMapping  Json                @map("parameter_mapping") // [{index:1, kind:'contact_field'|'static', field?, value?}, ...]
+  audienceFilter    Json                @map("audience_filter")   // {kind:'tag'|'all'|'ids', ...}
+  status            CampaignStatus      @default(draft)
+  totalRecipients   Int                 @default(0) @map("total_recipients")
+  createdById       String?             @map("created_by_id") @db.Uuid
+  createdBy         User?               @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  startedAt         DateTime?           @map("started_at")
+  completedAt       DateTime?           @map("completed_at")
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+  recipients        CampaignRecipient[]
+
+  @@index([status])
+  @@map("campaigns")
+}
+
+model CampaignRecipient {
+  id                String                  @id @default(uuid()) @db.Uuid
+  campaignId        String                  @map("campaign_id") @db.Uuid
+  campaign          Campaign                @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contactId         String                  @map("contact_id") @db.Uuid
+  contact           Contact                 @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  resolvedParams    Json                    @map("resolved_params") // ["Carolina","viernes 15"]
+  status            CampaignRecipientStatus @default(pending)
+  whatsappMessageId String?                 @unique @map("whatsapp_message_id")
+  errorMessage      String?                 @map("error_message")
+  sentAt            DateTime?               @map("sent_at")
+  deliveredAt       DateTime?               @map("delivered_at")
+  readAt            DateTime?               @map("read_at")
+  createdAt         DateTime                @default(now()) @map("created_at")
+
+  @@unique([campaignId, contactId])
+  @@index([status])
+  @@index([whatsappMessageId])
+  @@map("campaign_recipients")
+}
+
 enum TemplateStatus {
   draft
   pending
@@ -110,6 +175,7 @@ model Template {
   lastSyncedAt    DateTime?      @map("last_synced_at")
   createdAt       DateTime       @default(now()) @map("created_at")
   updatedAt       DateTime       @updatedAt @map("updated_at")
+  campaigns       Campaign[]
 
   @@index([status])
   @@map("templates")
@@ -132,6 +198,7 @@ model User {
   sessions     Session[]
   notes        Note[]
   auditLogs    AuditLog[]
+  campaigns    Campaign[]
 
   @@map("users")
 }

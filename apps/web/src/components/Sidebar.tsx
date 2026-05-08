@@ -91,6 +91,12 @@ export default function Sidebar({ user }: Props) {
           Plantillas
         </Link>
         <Link
+          href="/broadcasts"
+          className="block px-3 py-1.5 rounded-md text-slate-300 hover:bg-slate-800/60"
+        >
+          Campañas
+        </Link>
+        <Link
           href="/metrics"
           className="block px-3 py-1.5 rounded-md text-slate-300 hover:bg-slate-800/60"
         >

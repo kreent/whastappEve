@@ -3,6 +3,7 @@ import cookie from "@fastify/cookie";
 import sensible from "@fastify/sensible";
 import { env } from "./config/env.js";
 import { authRoutes } from "./routes/auth.js";
+import { campaignRoutes } from "./routes/campaigns.js";
 import { contactRoutes } from "./routes/contacts.js";
 import { conversationRoutes } from "./routes/conversations.js";
 import { flowRoutes } from "./routes/flows.js";
@@ -115,6 +116,7 @@ export async function buildServer(): Promise<FastifyInstance> {
   await app.register(flowRoutes);
   await app.register(templateRoutes);
   await app.register(metricsRoutes);
+  await app.register(campaignRoutes);
 
   return app;
 }

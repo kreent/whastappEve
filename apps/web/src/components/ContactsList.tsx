@@ -5,10 +5,13 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import type { Contact } from "@/lib/types";
 import { formatRelative } from "@/lib/format";
+import ImportContactsModal from "./ImportContactsModal";
 
 export default function ContactsList() {
   const [items, setItems] = useState<Contact[] | null>(null);
   const [search, setSearch] = useState("");
+  const [showImport, setShowImport] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -26,18 +29,30 @@ export default function ContactsList() {
     return () => {
       alive = false;
     };
-  }, [search]);
+  }, [search, reloadKey]);
 
   return (
     <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-      <div className="p-3 border-b border-slate-200">
+      <div className="p-3 border-b border-slate-200 flex items-center gap-2">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar por número, nombre o profile name..."
-          className="w-full text-sm px-3 py-1.5 border border-slate-300 rounded"
+          className="flex-1 text-sm px-3 py-1.5 border border-slate-300 rounded"
         />
+        <button
+          onClick={() => setShowImport(true)}
+          className="text-xs bg-brand-600 hover:bg-brand-700 text-white font-medium px-3 py-1.5 rounded whitespace-nowrap"
+        >
+          + Importar CSV
+        </button>
       </div>
+      {showImport && (
+        <ImportContactsModal
+          onClose={() => setShowImport(false)}
+          onImported={() => setReloadKey((k) => k + 1)}
+        />
+      )}
       <table className="w-full text-sm">
         <thead className="bg-slate-50">
           <tr className="text-left text-xs text-slate-500 uppercase tracking-wider">
@@ -65,8 +80,13 @@ export default function ContactsList() {
           {items?.map((c) => (
             <tr key={c.id} className="border-t border-slate-100 hover:bg-slate-50">
               <td className="px-4 py-2.5">
-                <div className="font-medium text-slate-900">
+                <div className="font-medium text-slate-900 flex items-center gap-2">
                   {c.profileName ?? c.name ?? "Sin nombre"}
+                  {(c as { optedOut?: boolean }).optedOut && (
+                    <span className="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded">
+                      opt-out
+                    </span>
+                  )}
                 </div>
                 <div className="text-xs text-slate-500">{c.phoneNumber}</div>
               </td>
