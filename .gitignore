@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+
+# Builds
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# Environment files (secrets!)
+.env
+.env.local
+.env.*.local
+**/.env
+**/.env.local
+**/.env.*.local
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.idea/
+.vscode/
+*.swp
+
+# Cache / tooling
+.turbo/
+.cache/
+coverage/
+
+# Deployment platforms
+.vercel/
+.railway/
+
+# Prisma local dev DB if any
+prisma/migrations/dev.db*
+
+# Background process outputs from Claude Code
+/private/tmp/

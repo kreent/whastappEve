@@ -1,0 +1,198 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum ConversationStatus {
+  open
+  assigned
+  pending
+  resolved
+  bot_handling
+}
+
+enum MessageDirection {
+  inbound
+  outbound
+}
+
+enum MessageStatus {
+  pending
+  sent
+  delivered
+  read
+  failed
+}
+
+model Contact {
+  id             String         @id @default(uuid()) @db.Uuid
+  phoneNumber    String         @unique @map("phone_number")
+  name           String?
+  profileName    String?        @map("profile_name")
+  tags           String[]       @default([])
+  metadata       Json           @default("{}")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  lastMessageAt  DateTime?      @map("last_message_at")
+  conversations  Conversation[]
+
+  @@map("contacts")
+}
+
+model Conversation {
+  id                 String             @id @default(uuid()) @db.Uuid
+  contactId          String             @map("contact_id") @db.Uuid
+  contact            Contact            @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  status             ConversationStatus @default(open)
+  assignedAgentId    String?            @map("assigned_agent_id") @db.Uuid
+  currentFlowId      String?            @map("current_flow_id") @db.Uuid
+  currentFlowNodeId  String?            @map("current_flow_node_id")
+  context            Json               @default("{}")
+  windowExpiresAt    DateTime?          @map("window_expires_at")
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+  messages           Message[]
+  notes              Note[]
+  currentFlow        Flow?              @relation(fields: [currentFlowId], references: [id], onDelete: SetNull)
+
+  @@index([contactId])
+  @@index([status])
+  @@map("conversations")
+}
+
+model Flow {
+  id            String         @id @default(uuid()) @db.Uuid
+  name          String
+  description   String?
+  triggerType   String         @map("trigger_type") // default | keyword | intent
+  triggerValue  String?        @map("trigger_value")
+  priority      Int            @default(100)
+  isActive      Boolean        @default(true) @map("is_active")
+  definition    Json
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  conversations Conversation[]
+
+  @@index([isActive, priority])
+  @@map("flows")
+}
+
+model Setting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("settings")
+}
+
+enum TemplateStatus {
+  draft
+  pending
+  approved
+  rejected
+  paused
+  disabled
+}
+
+model Template {
+  id              String         @id @default(uuid()) @db.Uuid
+  name            String         @unique
+  language        String
+  category        String         // MARKETING | UTILITY | AUTHENTICATION
+  status          TemplateStatus @default(draft)
+  metaTemplateId  String?        @map("meta_template_id")
+  components      Json
+  rejectionReason String?        @map("rejection_reason")
+  lastSyncedAt    DateTime?      @map("last_synced_at")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@map("templates")
+}
+
+enum UserRole {
+  admin
+  agent
+}
+
+model User {
+  id           String     @id @default(uuid()) @db.Uuid
+  email        String     @unique
+  passwordHash String     @map("password_hash")
+  name         String
+  role         UserRole   @default(agent)
+  isActive     Boolean    @default(true) @map("is_active")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+  sessions     Session[]
+  notes        Note[]
+  auditLogs    AuditLog[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  token     String   @unique
+  userId    String   @map("user_id") @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  ip        String?
+  userAgent String?  @map("user_agent")
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model Note {
+  id             String       @id @default(uuid()) @db.Uuid
+  conversationId String       @map("conversation_id") @db.Uuid
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String       @map("user_id") @db.Uuid
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content        String
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  @@index([conversationId])
+  @@map("notes")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String?  @map("user_id") @db.Uuid
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String
+  entityType String?  @map("entity_type")
+  entityId   String?  @map("entity_id")
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
+
+model Message {
+  id                  String           @id @default(uuid()) @db.Uuid
+  conversationId      String           @map("conversation_id") @db.Uuid
+  conversation        Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  whatsappMessageId   String?          @unique @map("whatsapp_message_id")
+  direction           MessageDirection
+  type                String
+  content             Json
+  status              MessageStatus    @default(pending)
+  sentBy              String?          @map("sent_by")
+  errorMessage        String?          @map("error_message")
+  createdAt           DateTime         @default(now()) @map("created_at")
+
+  @@index([conversationId])
+  @@index([whatsappMessageId])
+  @@map("messages")
+}

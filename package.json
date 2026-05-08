@@ -1,0 +1,22 @@
+{
+  "name": "whatsapp-platform",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev --workspace=@app/api",
+    "dev:web": "npm run dev --workspace=@app/web",
+    "build:api": "npm run build --workspace=@app/api",
+    "build:web": "npm run build --workspace=@app/web",
+    "start:api": "npm run start --workspace=@app/api",
+    "start:web": "npm run start --workspace=@app/web",
+    "prisma:generate": "npm run prisma:generate --workspace=@app/api",
+    "prisma:migrate": "npm run prisma:migrate --workspace=@app/api"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
