@@ -1,0 +1,17 @@
+# Railway / Nixpacks build config for apps/api (Fastify + BullMQ worker)
+# Web (Next.js) deploys separately to Vercel — see DEPLOY.md
+
+[phases.setup]
+nixPkgs = ["nodejs_20", "openssl"]
+
+[phases.install]
+cmds = ["npm ci --include=dev"]
+
+[phases.build]
+cmds = [
+  "npx prisma generate --schema=apps/api/prisma/schema.prisma",
+  "npm run build:api",
+]
+
+[start]
+cmd = "npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma && npm run start:api"

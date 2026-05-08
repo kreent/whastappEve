@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import type { User } from "./types";
 
 const COOKIE_NAME = process.env.SESSION_COOKIE_NAME ?? "wa_session";
-const API_BASE = process.env.API_BASE ?? "http://localhost:3000";
+const API_BASE = process.env.API_BASE_URL ?? "http://localhost:3000";
 
 export async function getUserFromCookie(): Promise<User | null> {
   const token = cookies().get(COOKIE_NAME)?.value;
