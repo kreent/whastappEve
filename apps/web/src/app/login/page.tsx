@@ -118,7 +118,7 @@ export default function LoginPage() {
 
       <div
         className="hidden lg:block flex-1 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: "url('/login-hero.jpeg')" }}
+        style={{ backgroundImage: "url('/login.png')" }}
         aria-hidden
       />
     </div>
