@@ -41,7 +41,7 @@ const STATUS_STYLE: Record<string, string> = {
 };
 
 export default function DebtsDashboard({ isAdmin }: { isAdmin: boolean }) {
-  const [scope, setScope] = useState<"today" | "overdue" | "upcoming">("today");
+  const [scope, setScope] = useState<"today" | "overdue" | "upcoming" | "pending">("today");
   const [items, setItems] = useState<Installment[] | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -120,7 +120,7 @@ export default function DebtsDashboard({ isAdmin }: { isAdmin: boolean }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        {(["today", "upcoming", "overdue"] as const).map((s) => (
+        {(["today", "upcoming", "pending", "overdue"] as const).map((s) => (
           <button
             key={s}
             onClick={() => setScope(s)}
@@ -130,7 +130,13 @@ export default function DebtsDashboard({ isAdmin }: { isAdmin: boolean }) {
                 : "bg-white text-slate-600 border-slate-300 hover:bg-slate-50"
             }`}
           >
-            {s === "today" ? "Hoy" : s === "upcoming" ? "Próximas (14d)" : "Vencidas"}
+            {s === "today"
+              ? "Hoy"
+              : s === "upcoming"
+                ? "Próximas (14d)"
+                : s === "pending"
+                  ? "Todas pendientes"
+                  : "Vencidas"}
           </button>
         ))}
         {isAdmin && (

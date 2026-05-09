@@ -143,7 +143,7 @@ export async function debtRoutes(app: FastifyInstance): Promise<void> {
     "/api/installments",
     { preHandler: requireAuth },
     async (req) => {
-      const q = req.query as { scope?: "today" | "overdue" | "upcoming" | "all"; contactId?: string };
+      const q = req.query as { scope?: "today" | "overdue" | "upcoming" | "pending" | "all"; contactId?: string };
       return listInstallments({ scope: q.scope, contactId: q.contactId });
     },
   );

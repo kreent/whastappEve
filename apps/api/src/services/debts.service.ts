@@ -106,7 +106,7 @@ export async function markInstallmentPaid(installmentId: string): Promise<Instal
 }
 
 export interface ListInstallmentsFilter {
-  scope?: "today" | "overdue" | "upcoming" | "all";
+  scope?: "today" | "overdue" | "upcoming" | "pending" | "all";
   contactId?: string;
 }
 
@@ -124,6 +124,9 @@ export async function listInstallments(filter: ListInstallmentsFilter = {}) {
     const in14 = new Date(today);
     in14.setUTCDate(in14.getUTCDate() + 14);
     where = { ...where, status: { in: ["pending", "scheduled"] }, dueDate: { gte: today, lte: in14 } };
+  } else if (filter.scope === "pending") {
+    // todas las cuotas no pagadas/canceladas, sin importar la fecha
+    where = { ...where, status: { in: ["pending", "scheduled", "sent", "overdue", "failed"] } };
   }
   return prisma.installment.findMany({
     where,
