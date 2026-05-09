@@ -125,7 +125,7 @@ export default function ContactDetail({
     <div className="space-y-5">
       <div>
         <Link href="/contacts" className="text-xs text-slate-500 hover:text-slate-900">
-          ← Contactos
+          ← Clientes
         </Link>
         <div className="flex items-center gap-3 mt-2">
           <div>
@@ -169,7 +169,7 @@ export default function ContactDetail({
         {debts === null && <div className="text-sm text-slate-400">Cargando...</div>}
         {debts?.length === 0 && (
           <div className="text-sm text-slate-500 bg-white border border-slate-200 rounded p-4">
-            Este contacto no tiene créditos asignados todavía.
+            Este cliente no tiene créditos asignados todavía.
           </div>
         )}
 

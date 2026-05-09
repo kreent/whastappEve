@@ -66,7 +66,7 @@ export default function ContactPanel({ data }: Props) {
     <aside className="w-80 border-l border-slate-200 bg-white overflow-y-auto scrollbar-thin">
       <div className="p-4 border-b border-slate-100">
         <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">
-          Contacto
+          Cliente
         </div>
         <div className="font-semibold text-slate-900">
           {data.contact.profileName ?? data.contact.name ?? "Sin nombre"}

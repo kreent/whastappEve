@@ -76,7 +76,7 @@ export default function Sidebar({ user }: Props) {
           href="/contacts"
           className="block px-3 py-1.5 rounded-md text-slate-300 hover:bg-slate-800/60"
         >
-          Contactos
+          Clientes
         </Link>
         <Link
           href="/flows"

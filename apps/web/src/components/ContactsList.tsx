@@ -56,7 +56,7 @@ export default function ContactsList() {
       <table className="w-full text-sm">
         <thead className="bg-slate-50">
           <tr className="text-left text-xs text-slate-500 uppercase tracking-wider">
-            <th className="px-4 py-2 font-medium">Contacto</th>
+            <th className="px-4 py-2 font-medium">Cliente</th>
             <th className="px-4 py-2 font-medium">Tags</th>
             <th className="px-4 py-2 font-medium">Último mensaje</th>
             <th className="px-4 py-2"></th>
@@ -73,7 +73,7 @@ export default function ContactsList() {
           {items?.length === 0 && (
             <tr>
               <td colSpan={4} className="p-4 text-slate-400 text-center">
-                Sin contactos.
+                Sin clientes.
               </td>
             </tr>
           )}

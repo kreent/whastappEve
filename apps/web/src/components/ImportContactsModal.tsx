@@ -63,7 +63,7 @@ export default function ImportContactsModal({ onClose, onImported }: Props) {
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div className="bg-white w-full max-w-lg rounded-lg shadow-lg max-h-[90vh] overflow-y-auto">
         <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between sticky top-0 bg-white">
-          <h2 className="font-semibold text-slate-900">Importar contactos (CSV)</h2>
+          <h2 className="font-semibold text-slate-900">Importar clientes (CSV)</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-700">×</button>
         </div>
         <div className="p-5 space-y-3">

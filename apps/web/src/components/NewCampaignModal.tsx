@@ -200,7 +200,7 @@ export default function NewCampaignModal({ onClose, onCreated }: Props) {
               {variableCount > 0 && (
                 <div>
                   <div className="text-sm text-slate-700 mb-2">
-                    Mapea las variables ({variableCount}) a campos del contacto o valores fijos:
+                    Mapea las variables ({variableCount}) a campos del cliente o valores fijos:
                   </div>
                   <div className="space-y-2">
                     {paramMapping.map((m) => (
@@ -222,7 +222,7 @@ export default function NewCampaignModal({ onClose, onCreated }: Props) {
                           className="w-full text-xs px-2 py-1 border border-slate-300 rounded"
                         >
                           <option value="field:profileName">Nombre del perfil de WhatsApp</option>
-                          <option value="field:name">Nombre del contacto (BD)</option>
+                          <option value="field:name">Nombre del cliente (BD)</option>
                           <option value="field:phoneNumber">Número de teléfono</option>
                           <option value="static">Valor fijo</option>
                         </select>
@@ -250,7 +250,7 @@ export default function NewCampaignModal({ onClose, onCreated }: Props) {
                       checked={audience.kind === "all"}
                       onChange={() => setAudience({ kind: "all" })}
                     />
-                    Todos los contactos (excepto opt-out)
+                    Todos los clientes (excepto opt-out)
                   </label>
                   <label className="flex items-start gap-2 text-sm">
                     <input
@@ -261,7 +261,7 @@ export default function NewCampaignModal({ onClose, onCreated }: Props) {
                       }
                     />
                     <div className="flex-1">
-                      Solo contactos con el tag:
+                      Solo clientes con el tag:
                       {audience.kind === "tag" && (
                         <select
                           value={audience.tag}
@@ -286,7 +286,7 @@ export default function NewCampaignModal({ onClose, onCreated }: Props) {
           {step === 4 && preview && selectedTemplate && (
             <div className="space-y-3">
               <div className="bg-amber-50 border border-amber-200 rounded p-3 text-xs text-amber-900">
-                ⚠ Vas a enviar a <strong>{preview.audienceCount}</strong> contactos. Esta acción
+                ⚠ Vas a enviar a <strong>{preview.audienceCount}</strong> clientes. Esta acción
                 no se puede cancelar individualmente, solo la campaña entera.
               </div>
               <div>

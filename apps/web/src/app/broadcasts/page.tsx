@@ -10,7 +10,7 @@ export default async function BroadcastsPage() {
       <main className="flex-1 overflow-y-auto p-6">
         <h1 className="text-xl font-semibold text-slate-900 mb-1">Campañas</h1>
         <p className="text-sm text-slate-500 mb-4">
-          Envíos masivos a contactos usando plantillas aprobadas por Meta. Respeta opt-outs y rate limits.
+          Envíos masivos a clientes usando plantillas aprobadas por Meta. Respeta opt-outs y rate limits.
         </p>
         <CampaignsList isAdmin={user.role === "admin"} />
       </main>

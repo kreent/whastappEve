@@ -145,7 +145,7 @@ export default function MetricsDashboard() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <KPI
-          label="Contactos totales"
+          label="Clientes totales"
           value={data.contacts.total.toString()}
           sub={`${data.contacts.newInWindow} nuevos en ${days}d`}
         />
