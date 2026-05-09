@@ -35,15 +35,15 @@ export default function Sidebar({ user }: Props) {
 
   return (
     <aside className="w-60 bg-slate-900 text-slate-200 flex flex-col">
-      <div className="px-4 py-4 border-b border-slate-800 flex items-center gap-2">
-        <div className="w-8 h-8 rounded-md bg-brand-500 flex items-center justify-center text-white font-bold">
-          W
-        </div>
-        <div>
-          <div className="font-semibold text-sm text-white">WhatsApp Platform</div>
-          <div className="text-[10px] uppercase tracking-wide text-slate-500">
-            {user.role}
-          </div>
+      <div className="px-4 py-4 border-b border-slate-800">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/logo.png"
+          alt="EveGate"
+          className="block w-full h-auto max-h-12 object-contain object-left"
+        />
+        <div className="text-[10px] uppercase tracking-wide text-slate-500 mt-1">
+          {user.role}
         </div>
       </div>
 
