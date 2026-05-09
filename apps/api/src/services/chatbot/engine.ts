@@ -1,8 +1,8 @@
-import type { Conversation, Prisma } from "@prisma/client";
+import type { Channel, Conversation, Prisma } from "@prisma/client";
 import type { FastifyBaseLogger } from "fastify";
 import { prisma } from "../../db/prisma.js";
+import { ChannelSendError, sendToContact } from "../channels.js";
 import { recordOutboundMessage } from "../conversation.service.js";
-import { whatsappService, WhatsAppApiError } from "../whatsapp.service.js";
 import { isWithinHours, getBusinessHours } from "./business-hours.js";
 import { loadActiveFlows, loadFlow, pickFlowForKeyword, type LoadedFlow } from "./flow.repository.js";
 import {
@@ -19,9 +19,17 @@ import { interpolate } from "./interpolate.js";
 
 const MAX_NODE_HOPS = 25;
 
+export interface EngineContact {
+  phoneNumber: string;
+  profileName: string | null;
+  name: string | null;
+  preferredChannel: Channel;
+  telegramChatId: string | null;
+}
+
 export interface EngineInput {
   conversation: Conversation;
-  contact: { phoneNumber: string; profileName: string | null; name: string | null };
+  contact: EngineContact;
   text: string;
   selectionId?: string;
   isFirstInbound: boolean;
@@ -292,12 +300,12 @@ async function handoffConversation(
 
 async function sendBotText(input: EngineInput, body: string, log: FastifyBaseLogger): Promise<void> {
   try {
-    const result = await whatsappService.sendText({ to: input.contact.phoneNumber, body });
+    const result = await sendToContact(input.contact, { kind: "text", body });
     await recordOutboundMessage({
       conversationId: input.conversation.id,
-      whatsappMessageId: result.whatsappMessageId,
+      whatsappMessageId: result.externalMessageId,
       type: "text",
-      content: { body },
+      content: { body, channel: result.channel },
       status: "sent",
       sentBy: "bot",
     });
@@ -322,17 +330,17 @@ async function sendBotButtons(
   const body = interpolate(node.text, ctx);
   const buttons = node.buttons.map((b) => ({ id: b.id, title: b.title }));
   try {
-    const result = await whatsappService.sendButtons({
-      to: input.contact.phoneNumber,
+    const result = await sendToContact(input.contact, {
+      kind: "buttons",
       body,
       footer: node.footer,
       buttons,
     });
     await recordOutboundMessage({
       conversationId: input.conversation.id,
-      whatsappMessageId: result.whatsappMessageId,
+      whatsappMessageId: result.externalMessageId,
       type: "interactive",
-      content: { kind: "buttons", body, buttons },
+      content: { kind: "buttons", body, buttons, channel: result.channel },
       status: "sent",
       sentBy: "bot",
     });
@@ -360,8 +368,8 @@ async function sendBotList(
     rows: s.rows.map((r) => ({ id: r.id, title: r.title, description: r.description })),
   }));
   try {
-    const result = await whatsappService.sendList({
-      to: input.contact.phoneNumber,
+    const result = await sendToContact(input.contact, {
+      kind: "list",
       body,
       footer: node.footer,
       buttonText: node.buttonText,
@@ -369,9 +377,9 @@ async function sendBotList(
     });
     await recordOutboundMessage({
       conversationId: input.conversation.id,
-      whatsappMessageId: result.whatsappMessageId,
+      whatsappMessageId: result.externalMessageId,
       type: "interactive",
-      content: { kind: "list", body, sections },
+      content: { kind: "list", body, sections, channel: result.channel },
       status: "sent",
       sentBy: "bot",
     });
@@ -388,11 +396,11 @@ async function sendBotList(
 }
 
 function logSendError(err: unknown, log: FastifyBaseLogger): void {
-  if (err instanceof WhatsAppApiError) {
-    log.error({ status: err.status, body: err.body }, "WhatsApp API error");
-  } else {
-    log.error({ err }, "unexpected send error");
+  if (err instanceof ChannelSendError) {
+    log.error({ channel: err.channel, msg: err.message }, "channel send error");
+    return;
   }
+  log.error({ err: (err as Error)?.message ?? err }, "unexpected send error");
 }
 
 export type FlowNodeForTests = FlowNode;

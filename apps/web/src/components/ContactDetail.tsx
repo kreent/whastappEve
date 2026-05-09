@@ -14,6 +14,9 @@ interface Contact {
   name: string | null;
   tags: string[];
   optedOut: boolean;
+  preferredChannel: "whatsapp" | "telegram";
+  telegramChatId: string | null;
+  telegramUsername: string | null;
   createdAt: string;
   conversations: Array<{ id: string; status: string; updatedAt: string }>;
 }
@@ -147,6 +150,57 @@ export default function ContactDetail({
                 {t}
               </span>
             ))}
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-lg p-4">
+        <div className="text-xs uppercase tracking-wider text-slate-500 mb-2">
+          Canal de envío
+        </div>
+        <div className="flex items-center gap-3 flex-wrap">
+          {(["whatsapp", "telegram"] as const).map((c) => {
+            const disabled = c === "telegram" && !contact.telegramChatId;
+            const active = contact.preferredChannel === c;
+            return (
+              <button
+                key={c}
+                disabled={disabled}
+                onClick={async () => {
+                  await api(`/api/contacts/${contact.id}`, {
+                    method: "PATCH",
+                    body: JSON.stringify({ preferredChannel: c }),
+                  });
+                  setReloadKey((k) => k + 1);
+                }}
+                className={
+                  "text-xs px-3 py-1.5 rounded border transition " +
+                  (active
+                    ? "bg-slate-900 text-white border-slate-900"
+                    : disabled
+                      ? "bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed"
+                      : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50")
+                }
+              >
+                {c === "whatsapp" ? "📱 WhatsApp" : "✈️ Telegram"}
+                {active && " · activo"}
+                {disabled && " (sin vincular)"}
+              </button>
+            );
+          })}
+        </div>
+        {contact.telegramChatId ? (
+          <div className="text-xs text-emerald-700 mt-2">
+            ✓ Telegram vinculado
+            {contact.telegramUsername && ` (@${contact.telegramUsername})`}
+            <span className="text-slate-500"> — chat_id {contact.telegramChatId}</span>
+          </div>
+        ) : (
+          <div className="text-xs text-slate-500 mt-2">
+            Sin Telegram. Comparte este link al cliente para vincular:{" "}
+            <code className="bg-slate-100 px-1 rounded">
+              https://t.me/&lt;tu_bot&gt;?start={contact.id}
+            </code>
           </div>
         )}
       </div>

@@ -4,9 +4,12 @@ import { prisma } from "../db/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
 import { audit } from "../services/auth/audit.js";
 import {
-  recordOutboundMessage,
-} from "../services/conversation.service.js";
-import { whatsappService, WhatsAppApiError } from "../services/whatsapp.service.js";
+  ChannelSendError,
+  renderTemplateText,
+  sendToContact,
+} from "../services/channels.js";
+import { recordOutboundMessage } from "../services/conversation.service.js";
+import { WhatsAppApiError } from "../services/whatsapp.service.js";
 
 const filterSchema = z.object({
   scope: z.enum(["all", "mine", "unassigned", "resolved", "pending", "bot"]).default("all"),
@@ -176,31 +179,43 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
               },
             ]
           : undefined;
-        const result = await whatsappService.sendTemplate({
-          to: conversation.contact.phoneNumber,
+        const bodyText =
+          (tpl.components as Array<{ type: string; text?: string }>).find((c) => c.type === "BODY")
+            ?.text ?? "";
+        const renderedText = renderTemplateText(bodyText, params);
+        const result = await sendToContact(conversation.contact, {
+          kind: "template",
           templateName: tpl.name,
-          languageCode: tpl.language,
+          language: tpl.language,
           components,
+          renderedText,
         });
-        whatsappMessageId = result.whatsappMessageId;
+        whatsappMessageId = result.externalMessageId;
         messageType = "template";
-        messageContent = { templateId: tpl.id, templateName: tpl.name, parameters: params };
+        messageContent = {
+          templateId: tpl.id,
+          templateName: tpl.name,
+          parameters: params,
+          channel: result.channel,
+        };
       } else {
-        const result = await whatsappService.sendText({
-          to: conversation.contact.phoneNumber,
+        const result = await sendToContact(conversation.contact, {
+          kind: "text",
           body: parsed.data.body,
         });
-        whatsappMessageId = result.whatsappMessageId;
-        messageContent = { body: parsed.data.body };
+        whatsappMessageId = result.externalMessageId;
+        messageContent = { body: parsed.data.body, channel: result.channel };
       }
     } catch (err) {
       status = "failed";
-      if (err instanceof WhatsAppApiError) {
+      if (err instanceof ChannelSendError) {
+        errorMessage = err.message;
+      } else if (err instanceof WhatsAppApiError) {
         errorMessage = (err.body as { error?: { message?: string } })?.error?.message ?? err.message;
       } else {
         errorMessage = (err as Error).message;
       }
-      req.log.error({ err }, "manual send failed");
+      req.log.error({ err: errorMessage }, "manual send failed");
     }
 
     const message = await recordOutboundMessage({

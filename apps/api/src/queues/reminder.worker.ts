@@ -1,12 +1,13 @@
 import { Worker, type Job } from "bullmq";
 import type { FastifyBaseLogger } from "fastify";
 import { prisma } from "../db/prisma.js";
+import { ChannelSendError, renderTemplateText, sendToContact } from "../services/channels.js";
 import {
   resolveReminderParams,
   type ReminderParameterMapping,
 } from "../services/reminder-resolver.js";
 import { todayUtcDate } from "../services/debts.service.js";
-import { whatsappService, WhatsAppApiError } from "../services/whatsapp.service.js";
+import { WhatsAppApiError } from "../services/whatsapp.service.js";
 import {
   REMINDER_QUEUE_NAME,
   enqueueRecipient,
@@ -116,29 +117,37 @@ async function sendOne(installmentId: string, log: FastifyBaseLogger): Promise<v
     ? [{ type: "body", parameters: params.map((text) => ({ type: "text", text })) }]
     : undefined;
 
+  const bodyText =
+    (template.components as Array<{ type: string; text?: string }>).find((c) => c.type === "BODY")
+      ?.text ?? "";
+  const renderedText = renderTemplateText(bodyText, params);
+
   let didThrow = false;
   let throwErr: unknown = null;
   try {
-    const result = await whatsappService.sendTemplate({
-      to: installment.debt.contact.phoneNumber,
+    const result = await sendToContact(installment.debt.contact, {
+      kind: "template",
       templateName: template.name,
-      languageCode: template.language,
+      language: template.language,
       components,
+      renderedText,
     });
     await prisma.installment.update({
       where: { id: installment.id },
       data: {
         status: "sent",
-        whatsappMessageId: result.whatsappMessageId,
+        whatsappMessageId: result.externalMessageId,
         reminderSentAt: new Date(),
         errorMessage: null,
       },
     });
   } catch (err) {
     const errorMessage =
-      err instanceof WhatsAppApiError
-        ? (err.body as { error?: { message?: string } })?.error?.message ?? err.message
-        : (err as Error).message;
+      err instanceof ChannelSendError
+        ? err.message
+        : err instanceof WhatsAppApiError
+          ? (err.body as { error?: { message?: string } })?.error?.message ?? err.message
+          : (err as Error).message;
     await prisma.installment.update({
       where: { id: installment.id },
       data: { status: "failed", errorMessage },

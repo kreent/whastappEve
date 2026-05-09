@@ -29,6 +29,11 @@ enum MessageStatus {
   failed
 }
 
+enum Channel {
+  whatsapp
+  telegram
+}
+
 model Contact {
   id                  String               @id @default(uuid()) @db.Uuid
   phoneNumber         String               @unique @map("phone_number")
@@ -38,6 +43,9 @@ model Contact {
   metadata            Json                 @default("{}")
   optedOut            Boolean              @default(false) @map("opted_out")
   optedOutAt          DateTime?            @map("opted_out_at")
+  telegramChatId      String?              @unique @map("telegram_chat_id")
+  telegramUsername    String?              @map("telegram_username")
+  preferredChannel    Channel              @default(whatsapp) @map("preferred_channel")
   createdAt           DateTime             @default(now()) @map("created_at")
   lastMessageAt       DateTime?            @map("last_message_at")
   conversations       Conversation[]
@@ -45,6 +53,7 @@ model Contact {
   debts               Debt[]
 
   @@index([optedOut])
+  @@index([preferredChannel])
   @@map("contacts")
 }
 

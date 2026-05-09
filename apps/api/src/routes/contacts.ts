@@ -16,6 +16,8 @@ const updateSchema = z.object({
   name: z.string().min(1).max(120).nullable().optional(),
   tags: z.array(z.string().min(1).max(40)).max(30).optional(),
   optedOut: z.boolean().optional(),
+  preferredChannel: z.enum(["whatsapp", "telegram"]).optional(),
+  telegramChatId: z.string().nullable().optional(),
 });
 
 const importSchema = z.object({
@@ -79,6 +81,12 @@ export async function contactRoutes(app: FastifyInstance): Promise<void> {
     if (parsed.data.optedOut !== undefined) {
       data.optedOut = parsed.data.optedOut;
       data.optedOutAt = parsed.data.optedOut ? new Date() : null;
+    }
+    if (parsed.data.preferredChannel !== undefined) {
+      data.preferredChannel = parsed.data.preferredChannel;
+    }
+    if (parsed.data.telegramChatId !== undefined) {
+      data.telegramChatId = parsed.data.telegramChatId;
     }
     const contact = await prisma.contact.update({
       where: { id: req.params.id },

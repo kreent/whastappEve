@@ -1,7 +1,8 @@
 import { Worker, type Job } from "bullmq";
 import type { FastifyBaseLogger } from "fastify";
 import { prisma } from "../db/prisma.js";
-import { whatsappService, WhatsAppApiError } from "../services/whatsapp.service.js";
+import { ChannelSendError, renderTemplateText, sendToContact } from "../services/channels.js";
+import { WhatsAppApiError } from "../services/whatsapp.service.js";
 import { BROADCAST_QUEUE_NAME, type BroadcastJobData } from "./broadcast.queue.js";
 import { getRedis } from "./redis.js";
 
@@ -84,30 +85,37 @@ async function processRecipient(
         },
       ]
     : undefined;
+  const bodyText =
+    (template.components as Array<{ type: string; text?: string }>).find((c) => c.type === "BODY")
+      ?.text ?? "";
+  const renderedText = renderTemplateText(bodyText, params);
 
   let didThrow = false;
   let throwErr: unknown = null;
   try {
-    const result = await whatsappService.sendTemplate({
-      to: recipient.contact.phoneNumber,
+    const result = await sendToContact(recipient.contact, {
+      kind: "template",
       templateName: template.name,
-      languageCode: template.language,
+      language: template.language,
       components,
+      renderedText,
     });
     await prisma.campaignRecipient.update({
       where: { id: recipient.id },
       data: {
         status: "sent",
-        whatsappMessageId: result.whatsappMessageId,
+        whatsappMessageId: result.externalMessageId,
         sentAt: new Date(),
         errorMessage: null,
       },
     });
   } catch (err) {
     const errorMessage =
-      err instanceof WhatsAppApiError
-        ? (err.body as { error?: { message?: string } })?.error?.message ?? err.message
-        : (err as Error).message;
+      err instanceof ChannelSendError
+        ? err.message
+        : err instanceof WhatsAppApiError
+          ? (err.body as { error?: { message?: string } })?.error?.message ?? err.message
+          : (err as Error).message;
     await prisma.campaignRecipient.update({
       where: { id: recipient.id },
       data: { status: "failed", errorMessage },

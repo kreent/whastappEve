@@ -1,6 +1,8 @@
 import type { FastifyBaseLogger } from "fastify";
 import { prisma } from "../db/prisma.js";
 import { withLock } from "../queues/lock.js";
+import { maybeLinkTelegramStart } from "../routes/webhook-telegram.js";
+import { ChannelSendError, sendToContact } from "./channels.js";
 import { runEngine } from "./chatbot/engine.js";
 import { recordInboundMessage, recordOutboundMessage, updateMessageStatus } from "./conversation.service.js";
 import {
@@ -10,6 +12,7 @@ import {
   OPT_OUT_CONFIRM,
   setContactOptOut,
 } from "./optout.js";
+import * as telegram from "./telegram.service.js";
 import { whatsappService, WhatsAppApiError } from "./whatsapp.service.js";
 import type {
   WhatsAppContactProfile,
@@ -41,6 +44,16 @@ export async function handleWebhookPayload(
   payload: WhatsAppWebhookPayload,
   logger: FastifyBaseLogger,
 ): Promise<void> {
+  if ((payload as { object?: string }).object === "telegram") {
+    const update = (payload as unknown as {
+      entry: Array<{ value: telegram.TelegramUpdate }>;
+    }).entry[0]?.value;
+    if (update) {
+      await processTelegramUpdate(update, logger);
+    }
+    return;
+  }
+
   for (const entry of payload.entry ?? []) {
     for (const change of entry.changes ?? []) {
       if (change.field !== "messages") continue;
@@ -94,16 +107,15 @@ async function processIncomingMessage(
 
   const { text, selectionId } = extractInput(msg);
 
-  // Opt-out / opt-in handling — short-circuits the engine.
   if (isOptOutMessage(text)) {
     await setContactOptOut(contact.id, true);
-    await sendSystemReply(conversation.id, contact.phoneNumber, OPT_OUT_CONFIRM, logger);
+    await sendSystemReply(contact, conversation.id, OPT_OUT_CONFIRM, logger);
     logger.info({ contactId: contact.id }, "contact opted out");
     return;
   }
   if (isOptInMessage(text) && contact.optedOut) {
     await setContactOptOut(contact.id, false);
-    await sendSystemReply(conversation.id, contact.phoneNumber, OPT_IN_CONFIRM, logger);
+    await sendSystemReply(contact, conversation.id, OPT_IN_CONFIRM, logger);
     logger.info({ contactId: contact.id }, "contact opted in again");
     return;
   }
@@ -113,13 +125,126 @@ async function processIncomingMessage(
   await runEngine(
     {
       conversation,
-      contact: { phoneNumber: contact.phoneNumber, profileName: contact.profileName, name: contact.name },
+      contact: {
+        phoneNumber: contact.phoneNumber,
+        profileName: contact.profileName,
+        name: contact.name,
+        preferredChannel: contact.preferredChannel,
+        telegramChatId: contact.telegramChatId,
+      },
       text,
       selectionId,
       isFirstInbound,
     },
     logger,
   );
+}
+
+async function processTelegramUpdate(
+  update: telegram.TelegramUpdate,
+  logger: FastifyBaseLogger,
+): Promise<void> {
+  const message = update.message ?? update.edited_message;
+  if (!message) {
+    logger.debug("telegram update without message, skipping");
+    return;
+  }
+  const chat = message.chat;
+  const text = message.text ?? "";
+
+  await withLock(`tg:${chat.id}`, async () => {
+    // /start <payload> deep-link → links the chat to a Contact.
+    const linked = await maybeLinkTelegramStart(text, chat);
+    if (linked) {
+      const contact = await prisma.contact.findUnique({ where: { id: linked.contactId } });
+      if (contact) {
+        await sendSystemReply(
+          contact,
+          null,
+          `¡Hola! Te confirmamos que ahora estás conectado por Telegram a tu cuenta. Te enviaremos avisos por aquí.`,
+          logger,
+        );
+      }
+      return;
+    }
+
+    let contact = await prisma.contact.findUnique({
+      where: { telegramChatId: String(chat.id) },
+    });
+    if (!contact) {
+      // Unlinked chat → create a placeholder contact with phone "tg:<chatId>".
+      contact = await prisma.contact.create({
+        data: {
+          phoneNumber: `tg:${chat.id}`,
+          name: [chat.first_name, chat.last_name].filter(Boolean).join(" ") || null,
+          telegramChatId: String(chat.id),
+          telegramUsername: chat.username,
+          preferredChannel: "telegram",
+          lastMessageAt: new Date(),
+        },
+      });
+      logger.info({ chatId: chat.id, contactId: contact.id }, "telegram contact auto-created");
+    } else {
+      await prisma.contact.update({
+        where: { id: contact.id },
+        data: { lastMessageAt: new Date() },
+      });
+    }
+
+    let conversation = await prisma.conversation.findFirst({
+      where: { contactId: contact.id, status: { in: ["open", "assigned", "pending", "bot_handling"] } },
+      orderBy: { createdAt: "desc" },
+    });
+    if (!conversation) {
+      conversation = await prisma.conversation.create({
+        data: {
+          contactId: contact.id,
+          status: "bot_handling",
+          windowExpiresAt: null,
+        },
+      });
+    }
+
+    await prisma.message.create({
+      data: {
+        conversationId: conversation.id,
+        whatsappMessageId: `tg-${update.update_id}`,
+        direction: "inbound",
+        type: "text",
+        content: { text: { body: text }, telegram: message } as object,
+        status: "delivered",
+      },
+    });
+
+    if (isOptOutMessage(text)) {
+      await setContactOptOut(contact.id, true);
+      await sendSystemReply(contact, conversation.id, OPT_OUT_CONFIRM, logger);
+      return;
+    }
+    if (isOptInMessage(text) && contact.optedOut) {
+      await setContactOptOut(contact.id, false);
+      await sendSystemReply(contact, conversation.id, OPT_IN_CONFIRM, logger);
+      return;
+    }
+
+    const isFirstInbound =
+      conversation.currentFlowNodeId == null && conversation.currentFlowId == null;
+    await runEngine(
+      {
+        conversation,
+        contact: {
+          phoneNumber: contact.phoneNumber,
+          profileName: contact.profileName,
+          name: contact.name,
+          preferredChannel: contact.preferredChannel,
+          telegramChatId: contact.telegramChatId,
+        },
+        text,
+        isFirstInbound,
+      },
+      logger,
+    );
+  });
 }
 
 async function processStatus(status: WhatsAppStatusUpdate, logger: FastifyBaseLogger): Promise<void> {
@@ -156,33 +281,37 @@ async function updateCampaignRecipientStatus(
 }
 
 async function sendSystemReply(
-  conversationId: string,
-  phoneNumber: string,
+  contact: { phoneNumber: string; preferredChannel: "whatsapp" | "telegram"; telegramChatId: string | null },
+  conversationId: string | null,
   body: string,
   logger: FastifyBaseLogger,
 ): Promise<void> {
   try {
-    const result = await whatsappService.sendText({ to: phoneNumber, body });
-    await recordOutboundMessage({
-      conversationId,
-      whatsappMessageId: result.whatsappMessageId,
-      type: "text",
-      content: { body },
-      status: "sent",
-      sentBy: "system",
-    });
+    const result = await sendToContact(contact, { kind: "text", body });
+    if (conversationId) {
+      await recordOutboundMessage({
+        conversationId,
+        whatsappMessageId: result.externalMessageId,
+        type: "text",
+        content: { body },
+        status: "sent",
+        sentBy: "system",
+      });
+    }
   } catch (err) {
-    if (err instanceof WhatsAppApiError) {
-      logger.warn({ status: err.status, body: err.body }, "system reply failed");
+    if (err instanceof ChannelSendError || err instanceof WhatsAppApiError) {
+      logger.warn({ err: (err as Error).message }, "system reply failed");
     } else {
       logger.warn({ err }, "system reply failed");
     }
-    await recordOutboundMessage({
-      conversationId,
-      type: "text",
-      content: { body },
-      status: "failed",
-      sentBy: "system",
-    });
+    if (conversationId) {
+      await recordOutboundMessage({
+        conversationId,
+        type: "text",
+        content: { body },
+        status: "failed",
+        sentBy: "system",
+      });
+    }
   }
 }

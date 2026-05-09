@@ -1,4 +1,4 @@
-import { env } from "../config/env.js";
+import { getWhatsAppConfig } from "./config.service.js";
 import type {
   SendButtonsOptions,
   SendListOptions,
@@ -22,14 +22,6 @@ export class WhatsAppApiError extends Error {
 }
 
 export class WhatsAppService {
-  private readonly endpoint: string;
-  private readonly accessToken: string;
-
-  constructor() {
-    this.endpoint = `${GRAPH_BASE}/${env.WHATSAPP_API_VERSION}/${env.WHATSAPP_PHONE_NUMBER_ID}/messages`;
-    this.accessToken = env.WHATSAPP_ACCESS_TOKEN;
-  }
-
   async sendText({ to, body, previewUrl = false }: SendTextOptions): Promise<SendResult> {
     return this.send({
       messaging_product: "whatsapp",
@@ -37,24 +29,6 @@ export class WhatsAppService {
       to,
       type: "text",
       text: { preview_url: previewUrl, body },
-    });
-  }
-
-  async sendTemplate({
-    to,
-    templateName,
-    languageCode,
-    components,
-  }: SendTemplateOptions): Promise<SendResult> {
-    return this.send({
-      messaging_product: "whatsapp",
-      to,
-      type: "template",
-      template: {
-        name: templateName,
-        language: { code: languageCode },
-        ...(components ? { components } : {}),
-      },
     });
   }
 
@@ -112,6 +86,24 @@ export class WhatsAppService {
     });
   }
 
+  async sendTemplate({
+    to,
+    templateName,
+    languageCode,
+    components,
+  }: SendTemplateOptions): Promise<SendResult> {
+    return this.send({
+      messaging_product: "whatsapp",
+      to,
+      type: "template",
+      template: {
+        name: templateName,
+        language: { code: languageCode },
+        ...(components ? { components } : {}),
+      },
+    });
+  }
+
   async markAsRead(whatsappMessageId: string): Promise<void> {
     await this.request({
       messaging_product: "whatsapp",
@@ -130,10 +122,12 @@ export class WhatsAppService {
   }
 
   private async request(payload: Record<string, unknown>): Promise<any> {
-    const res = await fetch(this.endpoint, {
+    const cfg = await getWhatsAppConfig();
+    const endpoint = `${GRAPH_BASE}/${cfg.apiVersion}/${cfg.phoneNumberId}/messages`;
+    const res = await fetch(endpoint, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${this.accessToken}`,
+        Authorization: `Bearer ${cfg.accessToken}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),

@@ -9,8 +9,10 @@ import { conversationRoutes } from "./routes/conversations.js";
 import { debtRoutes } from "./routes/debts.js";
 import { flowRoutes } from "./routes/flows.js";
 import { metricsRoutes } from "./routes/metrics.js";
+import { settingsRoutes } from "./routes/settings.js";
 import { templateRoutes } from "./routes/templates.js";
 import { webhookRoutes } from "./routes/webhook.js";
+import { webhookTelegramRoutes } from "./routes/webhook-telegram.js";
 
 declare module "fastify" {
   interface FastifyRequest {
@@ -111,6 +113,7 @@ export async function buildServer(): Promise<FastifyInstance> {
   });
 
   await app.register(webhookRoutes);
+  await app.register(webhookTelegramRoutes);
   await app.register(authRoutes);
   await app.register(conversationRoutes);
   await app.register(contactRoutes);
@@ -119,6 +122,7 @@ export async function buildServer(): Promise<FastifyInstance> {
   await app.register(metricsRoutes);
   await app.register(campaignRoutes);
   await app.register(debtRoutes);
+  await app.register(settingsRoutes);
 
   return app;
 }

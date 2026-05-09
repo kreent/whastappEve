@@ -108,6 +108,14 @@ export default function Sidebar({ user }: Props) {
         >
           Métricas
         </Link>
+        {user.role === "admin" && (
+          <Link
+            href="/settings"
+            className="block px-3 py-1.5 rounded-md text-slate-300 hover:bg-slate-800/60"
+          >
+            Configuración
+          </Link>
+        )}
       </nav>
 
       <div className="p-3 border-t border-slate-800">

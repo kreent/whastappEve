@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
-import { env } from "../config/env.js";
 import { enqueueInbound } from "../queues/inbound.queue.js";
+import { getWhatsAppConfig } from "../services/config.service.js";
 import { verifySignature } from "../services/webhook-signature.js";
 import type { WhatsAppWebhookPayload } from "../services/whatsapp.types.js";
 
@@ -28,8 +28,9 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
     const mode = req.query["hub.mode"];
     const token = req.query["hub.verify_token"];
     const challenge = req.query["hub.challenge"];
+    const cfg = await getWhatsAppConfig();
 
-    if (mode === "subscribe" && token === env.WHATSAPP_WEBHOOK_VERIFY_TOKEN && challenge) {
+    if (mode === "subscribe" && token === cfg.webhookVerifyToken && challenge) {
       reply.code(200).type("text/plain").send(challenge);
       return;
     }
@@ -39,8 +40,9 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
   app.post("/webhook/whatsapp", async (req: FastifyRequest, reply) => {
     const rawBody = (req as FastifyRequest & { rawBody?: Buffer }).rawBody;
     const signature = req.headers["x-hub-signature-256"] as string | undefined;
+    const cfg = await getWhatsAppConfig();
 
-    if (!rawBody || !verifySignature(env.WHATSAPP_APP_SECRET, rawBody, signature)) {
+    if (!rawBody || !verifySignature(cfg.appSecret, rawBody, signature)) {
       req.log.warn({ signature }, "webhook signature invalid");
       reply.code(401).send({ error: "invalid_signature" });
       return;
