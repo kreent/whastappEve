@@ -6,6 +6,7 @@ import { authRoutes } from "./routes/auth.js";
 import { campaignRoutes } from "./routes/campaigns.js";
 import { contactRoutes } from "./routes/contacts.js";
 import { conversationRoutes } from "./routes/conversations.js";
+import { debtRoutes } from "./routes/debts.js";
 import { flowRoutes } from "./routes/flows.js";
 import { metricsRoutes } from "./routes/metrics.js";
 import { templateRoutes } from "./routes/templates.js";
@@ -117,6 +118,7 @@ export async function buildServer(): Promise<FastifyInstance> {
   await app.register(templateRoutes);
   await app.register(metricsRoutes);
   await app.register(campaignRoutes);
+  await app.register(debtRoutes);
 
   return app;
 }

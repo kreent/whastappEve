@@ -97,6 +97,12 @@ export default function Sidebar({ user }: Props) {
           Campañas
         </Link>
         <Link
+          href="/debts"
+          className="block px-3 py-1.5 rounded-md text-slate-300 hover:bg-slate-800/60"
+        >
+          Cobranza
+        </Link>
+        <Link
           href="/metrics"
           className="block px-3 py-1.5 rounded-md text-slate-300 hover:bg-slate-800/60"
         >

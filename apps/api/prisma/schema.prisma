@@ -42,6 +42,7 @@ model Contact {
   lastMessageAt       DateTime?            @map("last_message_at")
   conversations       Conversation[]
   campaignRecipients  CampaignRecipient[]
+  debts               Debt[]
 
   @@index([optedOut])
   @@map("contacts")
@@ -176,9 +177,71 @@ model Template {
   createdAt       DateTime       @default(now()) @map("created_at")
   updatedAt       DateTime       @updatedAt @map("updated_at")
   campaigns       Campaign[]
+  debts           Debt[]
 
   @@index([status])
   @@map("templates")
+}
+
+enum DebtStatus {
+  active
+  paid
+  cancelled
+  overdue
+}
+
+enum InstallmentStatus {
+  pending
+  scheduled
+  sent
+  paid
+  overdue
+  failed
+}
+
+model Debt {
+  id                String        @id @default(uuid()) @db.Uuid
+  contactId         String        @map("contact_id") @db.Uuid
+  contact           Contact       @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  description       String?
+  totalAmount       Decimal       @map("total_amount") @db.Decimal(14, 2)
+  currency          String        @default("COP")
+  installmentCount  Int           @map("installment_count")
+  paymentDayOfMonth Int           @map("payment_day_of_month")
+  firstDueDate      DateTime      @map("first_due_date") @db.Date
+  paymentLink       String?       @map("payment_link")
+  templateId        String?       @map("template_id") @db.Uuid
+  template          Template?     @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  parameterMapping  Json          @map("parameter_mapping") @default("[]")
+  status            DebtStatus    @default(active)
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+  installments      Installment[]
+
+  @@index([contactId])
+  @@index([status])
+  @@map("debts")
+}
+
+model Installment {
+  id                String              @id @default(uuid()) @db.Uuid
+  debtId            String              @map("debt_id") @db.Uuid
+  debt              Debt                @relation(fields: [debtId], references: [id], onDelete: Cascade)
+  number            Int
+  amount            Decimal             @db.Decimal(14, 2)
+  dueDate           DateTime            @map("due_date") @db.Date
+  status            InstallmentStatus   @default(pending)
+  reminderSentAt    DateTime?           @map("reminder_sent_at")
+  paidAt            DateTime?           @map("paid_at")
+  paymentLink       String?             @map("payment_link")
+  whatsappMessageId String?             @map("whatsapp_message_id")
+  errorMessage      String?             @map("error_message")
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+
+  @@unique([debtId, number])
+  @@index([status, dueDate])
+  @@map("installments")
 }
 
 enum UserRole {

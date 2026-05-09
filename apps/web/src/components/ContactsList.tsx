@@ -108,10 +108,10 @@ export default function ContactsList() {
               </td>
               <td className="px-4 py-2.5 text-right">
                 <Link
-                  href={`/inbox?search=${encodeURIComponent(c.phoneNumber)}`}
+                  href={`/contacts/${c.id}`}
                   className="text-xs text-brand-700 hover:underline"
                 >
-                  Ver conversaciones →
+                  Ver detalle →
                 </Link>
               </td>
             </tr>

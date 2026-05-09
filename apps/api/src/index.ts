@@ -5,14 +5,22 @@ import { startBroadcastWorker } from "./queues/broadcast.worker.js";
 import { closeInboundQueue } from "./queues/inbound.queue.js";
 import { startInboundWorker } from "./queues/inbound.worker.js";
 import { closeRedis } from "./queues/redis.js";
+import {
+  closeReminderQueue,
+  ensureDailyReminderSchedule,
+} from "./queues/reminder.queue.js";
+import { startReminderWorker } from "./queues/reminder.worker.js";
 import { buildServer } from "./server.js";
 
 async function main(): Promise<void> {
   const app = await buildServer();
   const inboundWorker = startInboundWorker(app.log);
   const broadcastWorker = startBroadcastWorker(app.log);
+  const reminderWorker = startReminderWorker(app.log);
+  await ensureDailyReminderSchedule();
   app.log.info({ concurrency: env.WORKER_CONCURRENCY }, "inbound worker started");
   app.log.info("broadcast worker started");
+  app.log.info("reminder worker started + daily schedule registered");
 
   const shutdown = async (signal: string): Promise<void> => {
     app.log.info({ signal }, "shutting down");
@@ -20,8 +28,10 @@ async function main(): Promise<void> {
       await app.close();
       await inboundWorker.close();
       await broadcastWorker.close();
+      await reminderWorker.close();
       await closeInboundQueue();
       await closeBroadcastQueue();
+      await closeReminderQueue();
       await closeRedis();
       await prisma.$disconnect();
       process.exit(0);
