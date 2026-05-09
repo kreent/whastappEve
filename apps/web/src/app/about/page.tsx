@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { InfiniteGridHero } from "@/components/InfiniteGridHero";
+import { TiltCard } from "@/components/TiltCard";
 
 export const metadata: Metadata = {
   title: "EveGate · Atención multicanal y cobranza automatizada",
@@ -156,13 +157,15 @@ export default function AboutPage() {
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {FEATURES.map((f) => (
-              <div
+              <TiltCard
                 key={f.title}
-                className="bg-slate-900 border border-slate-800 hover:border-emerald-500/50 rounded-xl p-5 transition"
+                tiltLimit={10}
+                scale={1.04}
+                className="bg-slate-900 border border-slate-800 hover:border-emerald-500/50 rounded-xl p-5"
               >
                 <h3 className="font-semibold mb-1.5 text-emerald-400">{f.title}</h3>
                 <p className="text-sm text-slate-300 leading-relaxed">{f.body}</p>
-              </div>
+              </TiltCard>
             ))}
           </div>
         </div>
@@ -218,7 +221,7 @@ export default function AboutPage() {
             <p className="text-slate-200 leading-relaxed mb-4">
               Un fondo de empleados con 500 colaboradores asigna créditos por
               empleado en EveGate. Cada mes, el sistema manda automáticamente
-              un recordatorio con un link de pago de ComboPay vía WhatsApp.
+              un recordatorio con un link de pago vía WhatsApp.
             </p>
             <p className="text-slate-300 text-sm leading-relaxed">
               Cuando el empleado paga, EveGate marca la cuota como pagada

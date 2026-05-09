@@ -26,8 +26,8 @@ export function InfiniteGridHero() {
   const gridOffsetY = useMotionValue(0);
 
   useAnimationFrame(() => {
-    gridOffsetX.set((gridOffsetX.get() + 0.5) % 40);
-    gridOffsetY.set((gridOffsetY.get() + 0.5) % 40);
+    gridOffsetX.set((gridOffsetX.get() + 0.12) % 40);
+    gridOffsetY.set((gridOffsetY.get() + 0.12) % 40);
   });
 
   const maskImage = useMotionTemplate`radial-gradient(320px circle at ${mouseX}px ${mouseY}px, black, transparent)`;
