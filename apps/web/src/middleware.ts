@@ -3,6 +3,8 @@ import type { NextRequest } from "next/server";
 
 const COOKIE_NAME = process.env.SESSION_COOKIE_NAME ?? "wa_session";
 
+const PUBLIC_PATHS = new Set(["/login", "/about"]);
+
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const hasSession = req.cookies.has(COOKIE_NAME);
@@ -11,6 +13,10 @@ export function middleware(req: NextRequest) {
     if (hasSession) {
       return NextResponse.redirect(new URL("/inbox", req.url));
     }
+    return NextResponse.next();
+  }
+
+  if (PUBLIC_PATHS.has(pathname)) {
     return NextResponse.next();
   }
 
