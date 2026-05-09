@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { prisma } from "../db/prisma.js";
+import { ChannelSendError, sendToContact } from "../services/channels.js";
 import { getComboPayConfig } from "../services/config.service.js";
 import { audit } from "../services/auth/audit.js";
 
@@ -105,6 +106,11 @@ export async function webhookComboPayRoutes(app: FastifyInstance): Promise<void>
             },
           });
           req.log.info({ installmentId: installment.id }, "installment marked paid via combopay");
+
+          // Send confirmation message to the customer.
+          await sendPaymentConfirmation(installment.id, req.log).catch((err) => {
+            req.log.warn({ err }, "could not send payment confirmation");
+          });
         } else if (FAILED_STATES.has(stateRaw)) {
           await prisma.installment.update({
             where: { id: installment.id },
@@ -159,4 +165,103 @@ export async function webhookComboPayRoutes(app: FastifyInstance): Promise<void>
 </html>`);
     },
   );
+}
+
+function formatCurrency(value: number, currency: string): string {
+  try {
+    return new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 0,
+    }).format(value);
+  } catch {
+    return `$${value.toFixed(0)}`;
+  }
+}
+
+function formatDate(d: Date): string {
+  return d.toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric" });
+}
+
+/**
+ * Sends a payment confirmation message to the customer via their preferred channel.
+ * Best-effort: logs and swallows failures so the webhook always returns 200.
+ */
+async function sendPaymentConfirmation(
+  installmentId: string,
+  log: import("fastify").FastifyBaseLogger,
+): Promise<void> {
+  const installment = await prisma.installment.findUnique({
+    where: { id: installmentId },
+    include: { debt: { include: { contact: true } } },
+  });
+  if (!installment) return;
+
+  const amount = formatCurrency(Number(installment.amount), installment.debt.currency);
+  const number = installment.number;
+  const total = installment.debt.installmentCount;
+
+  // Find next pending installment to mention in the confirmation.
+  const next = await prisma.installment.findFirst({
+    where: {
+      debtId: installment.debtId,
+      status: { in: ["pending", "scheduled", "overdue"] },
+    },
+    orderBy: { number: "asc" },
+  });
+
+  const lines: string[] = [
+    "¡Tu pago fue exitoso! 🎉",
+    "",
+    `Recibimos tu cuota ${number} de ${total} por ${amount}.`,
+  ];
+  if (next) {
+    lines.push(
+      "",
+      `📅 Tu próxima cuota (${next.number} de ${total}) vence el ${formatDate(next.dueDate)}.`,
+    );
+  } else {
+    lines.push("", "🌟 Esta era tu última cuota — ¡has terminado de pagar este crédito!");
+  }
+  lines.push("", "¡Gracias por la puntualidad! 💛");
+
+  const body = lines.join("\n");
+
+  try {
+    const result = await sendToContact(installment.debt.contact, {
+      kind: "text",
+      body,
+    });
+    // Persist as outbound message in the most recent conversation, if any.
+    const conversation = await prisma.conversation.findFirst({
+      where: { contactId: installment.debt.contactId },
+      orderBy: { updatedAt: "desc" },
+    });
+    if (conversation) {
+      await prisma.message.create({
+        data: {
+          conversationId: conversation.id,
+          whatsappMessageId: result.externalMessageId,
+          direction: "outbound",
+          type: "text",
+          content: { body, channel: result.channel } as object,
+          status: "sent",
+          sentBy: "system",
+        },
+      });
+    }
+    log.info(
+      { installmentId, channel: result.channel },
+      "payment confirmation sent",
+    );
+  } catch (err) {
+    if (err instanceof ChannelSendError) {
+      log.warn(
+        { channel: err.channel, msg: err.message },
+        "payment confirmation channel send failed",
+      );
+    } else {
+      log.warn({ err }, "payment confirmation send unknown error");
+    }
+  }
 }
