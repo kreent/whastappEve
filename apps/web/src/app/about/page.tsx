@@ -7,51 +7,43 @@ export const metadata: Metadata = {
     "Plataforma para atender clientes por WhatsApp y Telegram, con chatbot, campañas masivas y cobranza automatizada con link de pago.",
 };
 
-const FEATURES = [
+const FEATURES: Array<{ title: string; body: string }> = [
   {
-    icon: "💬",
     title: "Multicanal en una bandeja",
     body:
       "Atiende WhatsApp Business y Telegram desde la misma vista. Cada cliente tiene su canal preferido y los mensajes salen por donde corresponde.",
   },
   {
-    icon: "🤖",
     title: "Chatbot configurable sin código",
     body:
       "Diseña flujos con un editor visual drag-and-drop: mensajes, preguntas, condiciones, botones interactivos, derivar a humano. Cambia el flujo en 30 segundos sin tocar código.",
   },
   {
-    icon: "👥",
     title: "Bandeja tipo Intercom",
     body:
       "Tu equipo ve las conversaciones a la izquierda, el chat al centro, y la ficha del cliente a la derecha. Asignación, notas internas, etiquetas.",
   },
   {
-    icon: "💳",
     title: "Cobranza automatizada",
     body:
       "Asigna créditos con N cuotas. El día del vencimiento, a las 9 AM, sale automático un recordatorio con un link de pago único. Cuando paga, el sistema lo confirma solo.",
   },
   {
-    icon: "📢",
     title: "Campañas masivas",
     body:
       "Importa contactos por CSV, segmenta por etiquetas, y envía plantillas pre-aprobadas con variables personalizadas. Rate-limit + opt-out automático para cumplir con Meta.",
   },
   {
-    icon: "📋",
     title: "Plantillas con Meta",
     body:
       "Crea plantillas, envíalas a aprobación de Meta, sincroniza el estado, y úsalas para mensajes fuera de la ventana de 24 horas.",
   },
   {
-    icon: "📊",
     title: "Métricas en vivo",
     body:
       "Mensajes diarios, % resueltos por bot, tiempo de primera respuesta, conversaciones por estado. Saber qué tan bien están atendiendo tus agentes y tu bot.",
   },
   {
-    icon: "🔒",
     title: "Privado, tuyo, controlable",
     body:
       "Todo corre en tu infraestructura: tus credenciales, tu base de datos, tus reglas. No es SaaS opaco — es tuyo.",
@@ -96,7 +88,7 @@ export default function AboutPage() {
   return (
     <div className="min-h-screen bg-white text-slate-900">
       {/* Top nav */}
-      <header className="border-b border-slate-100">
+      <header className="bg-black border-b border-slate-800">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -104,7 +96,7 @@ export default function AboutPage() {
           </div>
           <Link
             href="/login"
-            className="text-sm bg-slate-900 hover:bg-slate-800 text-white font-medium px-4 py-2 rounded-md"
+            className="text-sm bg-emerald-500 hover:bg-emerald-400 text-black font-medium px-4 py-2 rounded-md"
           >
             Iniciar sesión
           </Link>
@@ -154,11 +146,14 @@ export default function AboutPage() {
       </section>
 
       {/* Features */}
-      <section id="funcionalidades" className="bg-slate-50 border-y border-slate-100">
+      <section id="funcionalidades" className="bg-black text-white border-y border-slate-800">
         <div className="max-w-6xl mx-auto px-6 py-16 sm:py-20">
           <div className="text-center mb-12 max-w-2xl mx-auto">
-            <h2 className="text-3xl font-bold mb-3">Todo lo que necesitas en un solo dashboard</h2>
-            <p className="text-slate-600">
+            <h2 className="text-3xl font-bold mb-3">
+              Todo lo que necesitas en un{" "}
+              <span className="text-emerald-400">solo dashboard</span>
+            </h2>
+            <p className="text-slate-300">
               Sin saltar entre 5 herramientas. Sin pegar y copiar números entre
               hojas de cálculo. Sin perder de vista una conversación importante.
             </p>
@@ -167,11 +162,10 @@ export default function AboutPage() {
             {FEATURES.map((f) => (
               <div
                 key={f.title}
-                className="bg-white border border-slate-200 rounded-xl p-5 hover:shadow-sm transition"
+                className="bg-slate-900 border border-slate-800 hover:border-emerald-500/50 rounded-xl p-5 transition"
               >
-                <div className="text-2xl mb-3">{f.icon}</div>
-                <h3 className="font-semibold mb-1.5 text-slate-900">{f.title}</h3>
-                <p className="text-sm text-slate-600 leading-relaxed">{f.body}</p>
+                <h3 className="font-semibold mb-1.5 text-emerald-400">{f.title}</h3>
+                <p className="text-sm text-slate-300 leading-relaxed">{f.body}</p>
               </div>
             ))}
           </div>

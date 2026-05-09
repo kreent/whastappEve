@@ -4,6 +4,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "WhatsApp Platform",
   description: "Plataforma de atención al cliente vía WhatsApp",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export default function RootLayout({
