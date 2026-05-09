@@ -89,6 +89,24 @@ export default function DebtsDashboard({ isAdmin }: { isAdmin: boolean }) {
     }
   }
 
+  async function editLink(id: string, currentLink: string | null) {
+    const next = window.prompt(
+      "Link de pago para esta cuota (deja vacío para borrar):",
+      currentLink ?? "",
+    );
+    if (next === null) return;
+    try {
+      await api(`/api/installments/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ paymentLink: next.trim() || null }),
+      });
+      setInfo("Link de pago actualizado.");
+      setReloadKey((k) => k + 1);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
   async function runRemindersNow() {
     try {
       await api("/api/debts/run-reminders", { method: "POST" });
@@ -200,9 +218,18 @@ export default function DebtsDashboard({ isAdmin }: { isAdmin: boolean }) {
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-2.5 text-right space-x-1">
+                  <td className="px-4 py-2.5 text-right space-x-2">
                     {i.status !== "paid" && (
                       <>
+                        {isAdmin && (
+                          <button
+                            onClick={() => editLink(i.id, i.paymentLink)}
+                            className="text-[11px] text-slate-600 hover:underline"
+                            title={i.paymentLink ?? "Sin link"}
+                          >
+                            {i.paymentLink ? "🔗 Editar link" : "+ Link"}
+                          </button>
+                        )}
                         {isAdmin && i.debt.template?.status === "approved" && (
                           <button
                             onClick={() => sendNow(i.id)}
