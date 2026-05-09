@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { InfiniteGridHero } from "@/components/InfiniteGridHero";
 
 export const metadata: Metadata = {
   title: "EveGate · Atención multicanal y cobranza automatizada",
@@ -104,44 +105,39 @@ export default function AboutPage() {
       </header>
 
       {/* Hero */}
-      <section className="max-w-6xl mx-auto px-6 py-16 sm:py-20 grid lg:grid-cols-2 gap-10 items-center">
-        <div>
-          <div className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 text-xs font-medium px-3 py-1 rounded-full mb-5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            Conecta. Envía. Comunica.
-          </div>
-          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-tight mb-5">
-            Atiende, vende y cobra por{" "}
-            <span className="text-emerald-600">WhatsApp y Telegram</span>{" "}
-            sin perder mensajes ni clientes.
-          </h1>
-          <p className="text-lg text-slate-600 mb-7 leading-relaxed">
-            EveGate junta tu chatbot, tu equipo de atención y tu cobranza
-            automatizada en un solo lugar. Reemplaza herramientas como WATI o
-            Respond.io, vive en tu infraestructura y se adapta a tu negocio.
+      <InfiniteGridHero />
+
+      {/* Pitch */}
+      <section className="bg-white border-y border-slate-100">
+        <div className="max-w-4xl mx-auto px-6 py-16 sm:py-20 text-center">
+          <p className="text-2xl sm:text-3xl font-semibold leading-snug text-slate-900">
+            ¿Cuántas horas pierde tu equipo{" "}
+            <span className="text-emerald-600">persiguiendo cuotas</span> y
+            contestando lo mismo en WhatsApp?
           </p>
-          <div className="flex gap-3 flex-wrap">
+          <p className="mt-6 text-lg text-slate-600 leading-relaxed">
+            EveGate{" "}
+            <span className="font-semibold text-slate-900">atiende solo</span>,
+            manda los recordatorios con link de pago, y{" "}
+            <span className="font-semibold text-slate-900">
+              marca pagado cuando el cliente paga
+            </span>
+            .
+          </p>
+          <div className="mt-8 flex justify-center gap-3 flex-wrap">
             <Link
               href="/login"
-              className="bg-slate-900 hover:bg-slate-800 text-white font-medium px-5 py-3 rounded-md text-sm"
+              className="bg-emerald-500 hover:bg-emerald-400 text-black font-semibold px-6 py-3 rounded-md text-sm shadow-md shadow-emerald-500/20"
             >
-              Entrar al dashboard
+              Empezar ahora
             </Link>
             <a
               href="#funcionalidades"
-              className="border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium px-5 py-3 rounded-md text-sm"
+              className="border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium px-6 py-3 rounded-md text-sm"
             >
-              Ver funcionalidades
+              Ver cómo funciona
             </a>
           </div>
-        </div>
-        <div className="relative">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/login.png"
-            alt="EveGate dashboard"
-            className="rounded-2xl shadow-xl border border-slate-200 w-full"
-          />
         </div>
       </section>
 
