@@ -96,7 +96,7 @@ export default function ContactDetail({
   }
 
   async function cancelDebt(debtId: string) {
-    if (!confirm("¿Cancelar la deuda? Las cuotas pendientes ya no se cobrarán.")) return;
+    if (!confirm("¿Cancelar el crédito? Las cuotas pendientes ya no se cobrarán.")) return;
     try {
       await api(`/api/debts/${debtId}`, { method: "DELETE" });
       setReloadKey((k) => k + 1);
@@ -154,14 +154,14 @@ export default function ContactDetail({
       <div>
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-sm font-semibold text-slate-700">
-            Deudas ({debts?.filter((d) => d.status === "active").length ?? 0} activas)
+            Créditos ({debts?.filter((d) => d.status === "active").length ?? 0} activos)
           </h2>
           {isAdmin && (
             <button
               onClick={() => setShowNewDebt(true)}
               className="text-xs bg-brand-600 hover:bg-brand-700 text-white font-medium px-3 py-1.5 rounded"
             >
-              + Asignar deuda
+              + Asignar crédito
             </button>
           )}
         </div>
@@ -169,7 +169,7 @@ export default function ContactDetail({
         {debts === null && <div className="text-sm text-slate-400">Cargando...</div>}
         {debts?.length === 0 && (
           <div className="text-sm text-slate-500 bg-white border border-slate-200 rounded p-4">
-            Este contacto no tiene deudas asignadas todavía.
+            Este contacto no tiene créditos asignados todavía.
           </div>
         )}
 
@@ -179,7 +179,7 @@ export default function ContactDetail({
               <div className="px-4 py-3 border-b border-slate-100 flex items-start justify-between gap-2">
                 <div>
                   <div className="font-medium text-slate-900">
-                    {d.description ?? "Deuda"} ·{" "}
+                    {d.description ?? "Crédito"} ·{" "}
                     <span className="text-slate-500 font-normal">
                       {formatCurrency(d.totalAmount, d.currency)} en {d.installmentCount} cuotas
                     </span>

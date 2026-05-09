@@ -134,7 +134,7 @@ export default function NewDebtModal({ contactId, onClose, onCreated }: Props) {
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div className="bg-white w-full max-w-xl rounded-lg shadow-lg max-h-[90vh] flex flex-col">
         <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
-          <h2 className="font-semibold text-slate-900">Nueva deuda</h2>
+          <h2 className="font-semibold text-slate-900">Nuevo crédito</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-700">×</button>
         </div>
         <div className="p-5 flex-1 overflow-y-auto space-y-3">
@@ -295,7 +295,7 @@ export default function NewDebtModal({ contactId, onClose, onCreated }: Props) {
             disabled={busy || !totalAmount || !installmentCount || !paymentDay || !firstDueDate}
             className="text-sm bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white px-3 py-1.5 rounded"
           >
-            {busy ? "Guardando..." : "Crear deuda"}
+            {busy ? "Guardando..." : "Crear crédito"}
           </button>
         </div>
       </div>
