@@ -12,6 +12,7 @@ import { metricsRoutes } from "./routes/metrics.js";
 import { settingsRoutes } from "./routes/settings.js";
 import { templateRoutes } from "./routes/templates.js";
 import { webhookRoutes } from "./routes/webhook.js";
+import { webhookComboPayRoutes } from "./routes/webhook-combopay.js";
 import { webhookTelegramRoutes } from "./routes/webhook-telegram.js";
 
 declare module "fastify" {
@@ -114,6 +115,7 @@ export async function buildServer(): Promise<FastifyInstance> {
 
   await app.register(webhookRoutes);
   await app.register(webhookTelegramRoutes);
+  await app.register(webhookComboPayRoutes);
   await app.register(authRoutes);
   await app.register(conversationRoutes);
   await app.register(contactRoutes);

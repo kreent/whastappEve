@@ -4,11 +4,13 @@ import { useState } from "react";
 import clsx from "clsx";
 import WhatsAppSettings from "./WhatsAppSettings";
 import TelegramSettings from "./TelegramSettings";
+import ComboPaySettings from "./ComboPaySettings";
 import BusinessHoursSettings from "./BusinessHoursSettings";
 
 const TABS = [
   { id: "whatsapp", label: "WhatsApp" },
   { id: "telegram", label: "Telegram" },
+  { id: "combopay", label: "ComboPay" },
   { id: "hours", label: "Horario de atención" },
 ] as const;
 
@@ -37,6 +39,7 @@ export default function SettingsTabs() {
       <div className="max-w-2xl">
         {tab === "whatsapp" && <WhatsAppSettings />}
         {tab === "telegram" && <TelegramSettings />}
+        {tab === "combopay" && <ComboPaySettings />}
         {tab === "hours" && <BusinessHoursSettings />}
       </div>
     </div>

@@ -233,20 +233,22 @@ model Debt {
 }
 
 model Installment {
-  id                String              @id @default(uuid()) @db.Uuid
-  debtId            String              @map("debt_id") @db.Uuid
-  debt              Debt                @relation(fields: [debtId], references: [id], onDelete: Cascade)
-  number            Int
-  amount            Decimal             @db.Decimal(14, 2)
-  dueDate           DateTime            @map("due_date") @db.Date
-  status            InstallmentStatus   @default(pending)
-  reminderSentAt    DateTime?           @map("reminder_sent_at")
-  paidAt            DateTime?           @map("paid_at")
-  paymentLink       String?             @map("payment_link")
-  whatsappMessageId String?             @map("whatsapp_message_id")
-  errorMessage      String?             @map("error_message")
-  createdAt         DateTime            @default(now()) @map("created_at")
-  updatedAt         DateTime            @updatedAt @map("updated_at")
+  id                  String              @id @default(uuid()) @db.Uuid
+  debtId              String              @map("debt_id") @db.Uuid
+  debt                Debt                @relation(fields: [debtId], references: [id], onDelete: Cascade)
+  number              Int
+  amount              Decimal             @db.Decimal(14, 2)
+  dueDate             DateTime            @map("due_date") @db.Date
+  status              InstallmentStatus   @default(pending)
+  reminderSentAt      DateTime?           @map("reminder_sent_at")
+  paidAt              DateTime?           @map("paid_at")
+  paymentLink         String?             @map("payment_link")
+  whatsappMessageId   String?             @map("whatsapp_message_id")
+  errorMessage        String?             @map("error_message")
+  combopayInvoiceId   String?             @unique @map("combopay_invoice_id")
+  combopayMetadata    Json?               @map("combopay_metadata")
+  createdAt           DateTime            @default(now()) @map("created_at")
+  updatedAt           DateTime            @updatedAt @map("updated_at")
 
   @@unique([debtId, number])
   @@index([status, dueDate])

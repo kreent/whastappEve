@@ -4,14 +4,18 @@ import { prisma } from "../db/prisma.js";
 import { requireAdmin, requireAuth } from "../middleware/auth.js";
 import { audit } from "../services/auth/audit.js";
 import {
+  getComboPayConfig,
   getTelegramConfig,
   getWhatsAppConfig,
+  redactComboPayConfig,
   redactTelegramConfig,
   redactWhatsAppConfig,
+  setComboPayConfig,
   setTelegramConfig,
   setWhatsAppConfig,
 } from "../services/config.service.js";
 import { DEFAULT_BUSINESS_HOURS, getBusinessHours } from "../services/chatbot/business-hours.js";
+import { listBanks as combopayListBanks, DEFAULT_BASE_URL as COMBOPAY_DEFAULT_URL } from "../services/combopay.service.js";
 import {
   deleteWebhook as tgDeleteWebhook,
   getMe as tgGetMe,
@@ -32,6 +36,13 @@ const telegramSchema = z.object({
   botToken: z.string().min(20).optional(),
   botUsername: z.string().optional(),
   webhookSecretToken: z.string().optional(),
+});
+
+const combopaySchema = z.object({
+  apiToken: z.string().min(10).optional(),
+  baseUrl: z.string().url().optional(),
+  defaultRedirectUrl: z.string().url().optional().nullable(),
+  webhookSecretToken: z.string().optional().nullable(),
 });
 
 const businessHoursSchema = z.object({
@@ -162,6 +173,54 @@ export async function settingsRoutes(app: FastifyInstance): Promise<void> {
       }
     },
   );
+
+  app.get("/api/settings/combopay", { preHandler: requireAdmin }, async () => {
+    const cfg = await getComboPayConfig();
+    return redactComboPayConfig(cfg);
+  });
+
+  app.put("/api/settings/combopay", { preHandler: requireAdmin }, async (req, reply) => {
+    const parsed = combopaySchema.safeParse(req.body);
+    if (!parsed.success) {
+      reply.code(400).send({ error: "invalid_input", details: parsed.error.flatten() });
+      return;
+    }
+    const current = await getComboPayConfig();
+    const next = {
+      apiToken: parsed.data.apiToken ?? current?.apiToken ?? "",
+      baseUrl: parsed.data.baseUrl ?? current?.baseUrl ?? COMBOPAY_DEFAULT_URL,
+      defaultRedirectUrl:
+        parsed.data.defaultRedirectUrl === null
+          ? undefined
+          : parsed.data.defaultRedirectUrl ?? current?.defaultRedirectUrl,
+      webhookSecretToken:
+        parsed.data.webhookSecretToken === null
+          ? undefined
+          : parsed.data.webhookSecretToken ?? current?.webhookSecretToken,
+    };
+    if (!next.apiToken) {
+      reply.code(400).send({ error: "missing_api_token" });
+      return;
+    }
+    await setComboPayConfig(next);
+    await audit({ userId: req.user!.id, action: "settings.combopay.updated" });
+    reply.send(redactComboPayConfig(next));
+  });
+
+  app.delete("/api/settings/combopay", { preHandler: requireAdmin }, async (req, reply) => {
+    await setComboPayConfig(null);
+    await audit({ userId: req.user!.id, action: "settings.combopay.deleted" });
+    reply.send({ ok: true });
+  });
+
+  app.post("/api/settings/combopay/test", { preHandler: requireAdmin }, async (_req, reply) => {
+    try {
+      const banks = await combopayListBanks();
+      reply.send({ ok: true, bankCount: banks.length, sampleBanks: banks.slice(0, 5) });
+    } catch (err) {
+      reply.code(502).send({ error: "combopay_error", message: (err as Error).message });
+    }
+  });
 
   app.get("/api/settings/business-hours", { preHandler: requireAuth }, async () => {
     return getBusinessHours();

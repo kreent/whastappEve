@@ -16,11 +16,20 @@ export interface TelegramConfig {
   webhookSecretToken?: string; // Telegram's secret_token mechanism
 }
 
+export interface ComboPayConfig {
+  apiToken: string;
+  baseUrl: string; // default "https://api.combopay.co"
+  defaultRedirectUrl?: string; // where the customer lands after paying
+  webhookSecretToken?: string; // shared secret appended as ?secret=... to the notification URL
+}
+
 const KEY_WHATSAPP = "whatsapp_config";
 const KEY_TELEGRAM = "telegram_config";
+const KEY_COMBOPAY = "combopay_config";
 
 let waCache: WhatsAppConfig | null | undefined;
 let tgCache: TelegramConfig | null | undefined;
+let cpCache: ComboPayConfig | null | undefined;
 let cacheLoadedAt = 0;
 const CACHE_TTL_MS = 30_000;
 
@@ -31,6 +40,7 @@ function cacheStale(): boolean {
 export function invalidateConfigCache(): void {
   waCache = undefined;
   tgCache = undefined;
+  cpCache = undefined;
   cacheLoadedAt = 0;
 }
 
@@ -87,6 +97,39 @@ export async function setTelegramConfig(cfg: TelegramConfig | null): Promise<voi
     });
   }
   invalidateConfigCache();
+}
+
+export async function getComboPayConfig(): Promise<ComboPayConfig | null> {
+  if (!cacheStale() && cpCache !== undefined) return cpCache;
+  const row = await prisma.setting.findUnique({ where: { key: KEY_COMBOPAY } });
+  cacheLoadedAt = Date.now();
+  cpCache = row ? (row.value as unknown as ComboPayConfig) : null;
+  return cpCache;
+}
+
+export async function setComboPayConfig(cfg: ComboPayConfig | null): Promise<void> {
+  if (cfg === null) {
+    await prisma.setting.deleteMany({ where: { key: KEY_COMBOPAY } });
+  } else {
+    await prisma.setting.upsert({
+      where: { key: KEY_COMBOPAY },
+      create: { key: KEY_COMBOPAY, value: cfg as object },
+      update: { value: cfg as object },
+    });
+  }
+  invalidateConfigCache();
+}
+
+export function redactComboPayConfig(
+  cfg: ComboPayConfig | null,
+): Record<string, string | undefined | boolean> | null {
+  if (!cfg) return null;
+  return {
+    baseUrl: cfg.baseUrl,
+    defaultRedirectUrl: cfg.defaultRedirectUrl,
+    webhookSecretToken: cfg.webhookSecretToken,
+    hasApiToken: !!cfg.apiToken,
+  };
 }
 
 /** Redact secrets so config can be returned by GET endpoints. */
