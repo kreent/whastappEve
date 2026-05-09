@@ -178,7 +178,7 @@ export async function debtRoutes(app: FastifyInstance): Promise<void> {
     },
   );
 
-  app.post<{ Params: { id: string } }>(
+  app.post<{ Params: { id: string }; Querystring: { reset?: string } }>(
     "/api/installments/:id/send-now",
     { preHandler: requireAdmin },
     async (req, reply) => {
@@ -186,6 +186,21 @@ export async function debtRoutes(app: FastifyInstance): Promise<void> {
       if (!installment) {
         reply.code(404).send({ error: "not_found" });
         return;
+      }
+      // Reset to pending if it's not paid, so the worker reprocesses (regenerates
+      // ComboPay link if configured, sends template again). Doesn't touch paid ones.
+      if (installment.status !== "paid") {
+        const reset = req.query.reset !== "false";
+        await prisma.installment.update({
+          where: { id: installment.id },
+          data: {
+            status: "pending",
+            errorMessage: null,
+            ...(reset
+              ? { paymentLink: null, combopayInvoiceId: null, combopayMetadata: undefined }
+              : {}),
+          },
+        });
       }
       await enqueueRecipient(installment.id);
       await audit({

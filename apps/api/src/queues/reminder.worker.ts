@@ -216,11 +216,26 @@ async function ensureComboPayLink(
       include: { debt: { include: { contact: true, template: true } } },
     });
   } catch (err) {
+    let errorDetails: string;
     if (err instanceof ComboPayApiError) {
       log.warn({ status: err.status, body: err.body }, "combopay invoice creation failed");
+      errorDetails = `ComboPay ${err.status}: ${
+        (err.body as { message?: string; error?: string })?.message ??
+        (err.body as { error?: string })?.error ??
+        err.message
+      }`;
     } else {
       log.warn({ err }, "combopay invoice creation failed (unknown)");
+      errorDetails = `ComboPay error: ${(err as Error).message}`;
     }
-    return installment;
+    // Surface the error message so it shows up in the UI (cuota row).
+    return prisma.installment.update({
+      where: { id: installment.id },
+      data: {
+        errorMessage: errorDetails,
+        combopayMetadata: { lastError: errorDetails, at: new Date().toISOString() } as object,
+      },
+      include: { debt: { include: { contact: true, template: true } } },
+    });
   }
 }

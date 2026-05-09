@@ -157,9 +157,18 @@ export async function getInvoiceStatus(invoiceId: string): Promise<ComboPayInvoi
 
 /** GET /api/invoice-company/bank-list (used as a cheap "health check"). */
 export async function listBanks(): Promise<Array<{ name: string; code: string }>> {
-  const json = (await request<Record<string, unknown>>(
-    "GET",
-    "/api/invoice-company/bank-list",
-  )) as { data?: Array<{ name: string; code: string }> };
-  return json.data ?? [];
+  const json = (await request<unknown>("GET", "/api/invoice-company/bank-list")) as unknown;
+  // ComboPay devuelve la lista en distintas formas según país/sandbox.
+  // Aceptamos: array directo, {data:[...]}, {data:{co:[...],pe:[...]}}.
+  if (Array.isArray(json)) return json as Array<{ name: string; code: string }>;
+  const data = (json as { data?: unknown })?.data;
+  if (Array.isArray(data)) return data as Array<{ name: string; code: string }>;
+  if (data && typeof data === "object") {
+    const all: Array<{ name: string; code: string }> = [];
+    for (const v of Object.values(data as Record<string, unknown>)) {
+      if (Array.isArray(v)) all.push(...(v as Array<{ name: string; code: string }>));
+    }
+    return all;
+  }
+  return [];
 }
